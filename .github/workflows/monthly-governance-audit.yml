@@ -1,0 +1,32 @@
+name: Monthly H.O. adoption audit
+on:
+  schedule:
+    - cron: '15 5 1 * *' # 09:15 Asia/Dubai, first day of each month; audits the previous month.
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: monthly-governance-audit
+  cancel-in-progress: false
+jobs:
+  monthly-audit:
+    if: ${{ vars.ECC_AUDIT_ENABLED == 'true' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Invoke the authorized, idempotent audit worker
+        env:
+          ECC_AUDIT_URL: ${{ secrets.ECC_AUDIT_URL }}
+          ECC_CRON_SECRET: ${{ secrets.ECC_CRON_SECRET }}
+        run: |
+          python - <<'PY'
+          import os, json, urllib.request, urllib.parse
+          url = os.environ.get('ECC_AUDIT_URL', '')
+          token = os.environ.get('ECC_CRON_SECRET', '')
+          parsed = urllib.parse.urlsplit(url)
+          if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or len(token) < 32:
+              raise SystemExit('Configure ECC_AUDIT_URL (HTTPS /api/control/cron endpoint) and ECC_CRON_SECRET repository secrets.')
+          request = urllib.request.Request(url, data=b'{}', method='POST', headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'})
+          with urllib.request.urlopen(request, timeout=240) as response:
+              result = json.load(response)
+          print(json.dumps({key: result.get(key) for key in ['month', 'audits', 'alerts', 'ncrDrafts', 'officialNcrsIssued']}))
+          PY

@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env.local
+    environment:
+      NODE_ENV: production
+      ECC_DATABASE_PATH: /app/.data/ecc.sqlite
+    volumes:
+      - ./.data:/app/.data
+    restart: unless-stopped

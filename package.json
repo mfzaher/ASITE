@@ -1,0 +1,39 @@
+{
+  "name": "ecc-information-governance",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "node scripts/start.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "setup": "tsx scripts/setup-workspace.ts",
+    "audit:once": "node --env-file-if-exists=.env.local --import tsx scripts/run-monthly-audit.ts",
+    "dev:demo": "ECC_LOCAL_MODE=1 next dev --hostname 127.0.0.1",
+    "postbuild": "node scripts/prepare-standalone.mjs",
+    "test:production": "tsx tests/production-smoke.ts"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "ai": "^7.0.143",
+    "better-auth": "^1.7.11",
+    "exceljs": "^4.4.0",
+    "fast-xml-parser": "^5.11.2",
+    "lucide-react": "^0.468.0",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

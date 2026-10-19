@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.vercel/
+.env*
+!.env.example
+*.tsbuildinfo
+test-results/
+playwright-report/
+coverage/
+.vercel
+
+.data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
