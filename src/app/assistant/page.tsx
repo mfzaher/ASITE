@@ -1,5 +1,7 @@
 "use client";
 
+import "./assistant.css";
+
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowLeft, ArrowUp, Bot, CheckCircle2, ChevronDown, CircleAlert,
