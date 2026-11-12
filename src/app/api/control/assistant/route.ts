@@ -23,8 +23,8 @@ export async function POST(request: Request) {
       throw new WorkspaceError("Month must use YYYY-MM.");
     const result = await answerWorkspaceAssistant(store, actor, snapshot(store, actor), {
       query: body.query,
-      projectIds: body.projectIds,
-      month: body.month,
+      projectIds: body.projectIds as string[] | undefined,
+      month: body.month as string | undefined,
     });
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
