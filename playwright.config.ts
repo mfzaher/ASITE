@@ -9,6 +9,7 @@ export default defineConfig({
     "browser.spec.ts",
     "browser-folder-isolation.spec.ts",
     "governance-browser.spec.ts",
+    "assistant-browser.spec.ts",
   ],
   workers: 1,
   use: {

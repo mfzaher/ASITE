@@ -11,7 +11,7 @@
     "test:e2e": "playwright test",
     "setup": "tsx scripts/setup-workspace.ts",
     "audit:once": "node --env-file-if-exists=.env.local --import tsx scripts/run-monthly-audit.ts",
-    "dev:demo": "ECC_LOCAL_MODE=1 next dev --hostname 127.0.0.1",
+    "dev:demo": "node scripts/dev-demo.mjs",
     "postbuild": "node scripts/prepare-standalone.mjs",
     "test:production": "tsx tests/production-smoke.ts"
   },
