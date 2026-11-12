@@ -412,9 +412,9 @@ export async function answerWorkspaceAssistant(
       data,
       hits.map((h, i) =>
         "[L" + (i + 1) + "] " + h.lesson.title +
-        "\\nLesson: " + h.lesson.lesson +
-        "\\nRecommended action: " + h.lesson.recommendation,
-      ).join("\\n\\n"),
+        "\nLesson: " + h.lesson.lesson +
+        "\nRecommended action: " + h.lesson.recommendation,
+      ).join("\n\n"),
       "answered",
       "source-excerpts",
       hits.map((h, i) => ({
