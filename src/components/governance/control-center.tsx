@@ -586,6 +586,13 @@ export default function ControlCenter() {
             </button>
           ))}
         </nav>
+        <a className="gc-register-link" href="/assistant">
+          <Sparkles size={17} />
+          <span>
+            ECC Intelligence<small>Project data assistant</small>
+          </span>
+          <ArrowRight size={15} />
+        </a>
         <a className="gc-register-link" href="/registers">
           <FolderOpen size={17} />
           <span>
