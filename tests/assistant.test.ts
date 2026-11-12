@@ -109,3 +109,14 @@ test("unknown reporting months are rejected", () => {
   );
   store.close();
 });
+
+test("project comparison reports missing imports as unknown rather than zero", async () => {
+  const store = fixture();
+  const result = await answerWorkspaceAssistant(store, owner, snapshot(store, owner), {
+    query: "project overview", month: "2026-10",
+  });
+  assert.equal(result.status, "limited");
+  assert.match(result.answer, /coverage unavailable/);
+  assert.doesNotMatch(result.answer, /0 imported submissions/);
+  store.close();
+});
