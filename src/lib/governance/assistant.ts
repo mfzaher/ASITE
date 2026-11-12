@@ -235,22 +235,26 @@ function findingsAnswer(data: Scoped, ncr: boolean): AssistantReply {
     return {
       project: p,
       count: records.filter((f) => ncr ? f.status === "ncr_draft" : f.status !== "closed").length,
+      hasRecords: records.length > 0,
     };
   });
   const count = rows.reduce((n, r) => n + r.count, 0);
   const lines = rows.filter((r) => r.count).map((r) => projectName(r.project) + ": " + r.count);
+  const gaps = rows.filter((r) => !r.hasRecords).map((r) => projectName(r.project));
   const start = ncr
-    ? "There are " + count + " local NCR drafts in the selected ECC workspace. These are NOT officially issued ASITE NCRs. "
-    : "There are " + count + " open local observations/findings in the selected workspace. ";
+    ? "At least " + count + " local NCR drafts were found in the selected ECC workspace. These are NOT officially issued ASITE NCRs. "
+    : "At least " + count + " open local observations/findings were found in imported workspace records. ";
   const caveat = ncr
-    ? "Native ASITE NCR status, date issued and closure history are not connected, so unresolved or overdue official NCR totals cannot be determined."
+    ? "Native ASITE NCR status, issue dates and closure history are not connected. Unresolved or overdue official NCR totals cannot be determined."
     : "This is a local governance count, not an ASITE workflow total.";
   if (!data.findings.length)
-    return reply(data, start + "No local finding records are available. " + caveat, "unavailable", "unavailable");
+    return reply(data, "No local finding records are available. " + caveat, "unavailable", "unavailable");
   return reply(
     data,
-    start + (lines.length ? "\n\n" + lines.join("\n") + "\n\n" : "") + caveat,
-    ncr ? "limited" : "answered", "calculated", cite(data, "findings"),
+    start + (lines.length ? "\n\n" + lines.join("\n") + "\n\n" : "") +
+    (gaps.length ? "No imported finding records for: " + gaps.join(", ") + ". This is missing coverage, not a confirmed zero.\n\n" : "") +
+    caveat,
+    "limited", "calculated", cite(data, "findings"),
   );
 }
 
@@ -264,13 +268,16 @@ function dueAnswer(data: Scoped): AssistantReply {
   const lines = data.projects.map((p) => ({
     name: projectName(p),
     count: overdue.filter((s) => s.projectId === p.id).length,
-  })).filter((r) => r.count);
+    hasRecords: data.submissions.some((s) => s.projectId === p.id),
+  }));
+  const missing = lines.filter((r) => !r.hasRecords).map((r) => r.name);
   return reply(
     data,
-    overdue.length + " local submissions are past their due dates and not marked submitted. " +
-    (lines.length ? "\n\n" + lines.map((r) => r.name + ": " + r.count).join("\n") : "") +
+    "At least " + overdue.length + " imported local submissions are past their due dates and not marked submitted." +
+    (lines.some((r) => r.count) ? "\n\n" + lines.filter((r) => r.count).map((r) => r.name + ": " + r.count).join("\n") : "") +
+    (missing.length ? "\n\nNo imported submissions for: " + missing.join(", ") + ". These projects have unknown coverage, not confirmed zero overdue records." : "") +
     "\n\nThis does not measure overdue native ASITE workflows or approvals.",
-    "answered", "calculated", cite(data, "submissions"),
+    "limited", "calculated", cite(data, "submissions"),
   );
 }
 
@@ -278,17 +285,21 @@ function overviewAnswer(data: Scoped): AssistantReply {
   if (!data.projects.length)
     return reply(data, "No authorized ECC project records are available. Create or import projects first.", "unavailable", "unavailable");
   const lines = data.projects.map((p) => {
-    const nSub = data.submissions.filter((r) => r.projectId === p.id).length;
-    const nOpen = data.findings.filter((r) => r.projectId === p.id && r.status !== "closed").length;
-    const nRisk = data.risks.filter((r) => r.projectId === p.id && r.status !== "closed").length;
-    return projectName(p) + ": " + nSub + " local submissions, " + nOpen +
-      " open findings, " + nRisk + " open risks.";
+    const sub = data.submissions.filter((r) => r.projectId === p.id);
+    const findings = data.findings.filter((r) => r.projectId === p.id);
+    const risks = data.risks.filter((r) => r.projectId === p.id);
+    if (!sub.length && !findings.length && !risks.length)
+      return projectName(p) + ": No imported governance records (coverage unavailable).";
+    return projectName(p) + ": " + sub.length + " imported submissions, " +
+      findings.filter((r) => r.status !== "closed").length + " open local findings, " +
+      risks.filter((r) => r.status !== "closed").length + " open local risks. " +
+      "Counts for unimported domains remain unknown.";
   });
   return reply(
     data, "ECC workspace project overview (" + data.projects.length +
     " authorized projects):\n\n" + lines.join("\n") +
-    "\n\nThese figures describe imported workspace records only. No native ASITE document or workflow KPI is inferred.",
-    "answered", "calculated", cite(data, "submissions"),
+    "\n\nThese figures describe imported workspace records only. They are not complete native ASITE project KPIs.",
+    "limited", "calculated", cite(data, "submissions"),
   );
 }
 
