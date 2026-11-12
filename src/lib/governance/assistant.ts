@@ -1,7 +1,6 @@
 import { generateText } from "ai";
 import { WorkspaceError } from "./auth";
-import { monthBounds, previousMonth, validMonth } from "./engine";
-import { answerQuestion } from "./retrieval";
+import { monthBounds, previousMonth, searchLessons, validMonth } from "./engine";
 import type {
   AccessRecord,
   Actor,
@@ -402,23 +401,29 @@ export async function answerWorkspaceAssistant(
   if (/open findings?|observations?|finding counts?/.test(q))
     return findingsAnswer(data, false);
   if (/lessons?|what (did|can) we learn|recommendation/.test(q)) {
-    const lesson = await answerQuestion(
-      store, actor, query,
-      data.projects.length === 1 ? data.projects[0].entityId : undefined,
-      data.projects.length === 1 ? data.projects[0].id : undefined,
-    );
-    // The existing retrieval API is actor-filtered; constrain the returned citations to
-    // selected projects so a multi-project query cannot pull records from outside selection.
-    const acceptable = new Set(data.lessons.map((l) => l.id));
-    const allowed = lesson.citations.filter((c) => acceptable.has(c.lessonId));
-    if (allowed.length !== lesson.citations.length)
-      return reply(data, "Some approved lessons were outside the selected project scope. Please refine the question.", "unavailable", "unavailable");
+    const hits = searchLessons(query, data.lessons, 5);
+    if (!hits.length)
+      return reply(
+        data,
+        "No matching approved lessons exist within the selected project scope. Import and approve source-linked cases before relying on lesson recommendations.",
+        "unavailable", "unavailable",
+      );
     return reply(
-      data, lesson.answer,
-      allowed.length ? "limited" : "unavailable",
-      lesson.mode === "ai-grounded" ? "ai-grounded" : "source-excerpts",
-      allowed.map((c) => ({ id: c.id, title: c.title, kind: "lessons", url: c.url })),
-      lesson.warning,
+      data,
+      hits.map((h, i) =>
+        "[L" + (i + 1) + "] " + h.lesson.title +
+        "\\nLesson: " + h.lesson.lesson +
+        "\\nRecommended action: " + h.lesson.recommendation,
+      ).join("\\n\\n"),
+      "answered",
+      "source-excerpts",
+      hits.map((h, i) => ({
+        id: "L" + (i + 1),
+        title: h.lesson.title,
+        kind: "lessons" as const,
+        url: h.lesson.sourceUrl || (h.lesson.sourceId ? "/api/control/evidence/" + encodeURIComponent(h.lesson.sourceId) : ""),
+      })),
+      "Only approved lessons from your selected projects are retrieved.",
     );
   }
   if (/project(s)? (overview|summary|comparison)|compare projects|summar(y|ize) projects|all projects/.test(q))
